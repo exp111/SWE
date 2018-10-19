@@ -204,7 +204,7 @@ namespace KonsolenPrototyp
 						return 0;
 					currentCashType--;
 				}
-				Console.WriteLine($"{outputCash[currentCashType]}€");
+				Console.WriteLine($"{outputCash[currentCashType]} Euro");
 				toPay -= outputCash[currentCashType];
 			}
 			if (toPay == 0)
