@@ -58,8 +58,8 @@ namespace KonsolenPrototyp
 							if (reader.HasAttributes)
 							{
 								Tarif index;
-								Tarif.TryParse(reader.GetAttribute("type"), true, out index);
-								current = (int)index;
+								if (Tarif.TryParse(reader.GetAttribute("type"), true, out index) && Enum.IsDefined(typeof(Tarif), index));
+									current = (int)index;
 							}
 
 							break;
@@ -67,7 +67,7 @@ namespace KonsolenPrototyp
 						default:
 						{
 							Typ index;
-							if (Typ.TryParse(reader.Name, true, out index))
+							if (Typ.TryParse(reader.Name, true, out index) && Enum.IsDefined(typeof(Typ), index))
 							{
 								if (current != -1)
 									prices[current][(int)index] = reader.ReadElementContentAsDouble();
