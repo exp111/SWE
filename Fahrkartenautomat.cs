@@ -257,6 +257,18 @@ namespace KonsolenPrototyp
 					currentOrder.paid += intput;
 				else
 				{
+					if (input == "c") //cancel
+					{
+						//if something was already paid
+						if (currentOrder.paid > 0)
+						{
+							currentOrder.cost = 0; //set cost to 0 so we output everything the user has paid
+							return STATES.OUTPUT_MONEY;
+						}
+
+						return STATES.MENU;
+
+					}
 					Console.WriteLine("We don't accept this type of cash.");
 				}
 			}
@@ -276,7 +288,7 @@ namespace KonsolenPrototyp
 
 			Console.WriteLine("You get back: ");
 			int currentCashType = outputCash.Count - 1;
-			while (toPay > 0)
+			while (toPay > 0.05) //check if we still need to pay something; 0.05 cuz that's the smallest thing we pay & double are not precise
 			{
 				while (toPay - outputCash[currentCashType] < 0)
 				{
@@ -287,10 +299,12 @@ namespace KonsolenPrototyp
 				Console.WriteLine($"{outputCash[currentCashType]} Euro");
 				toPay -= outputCash[currentCashType];
 			}
-			if (toPay == 0)
+
+			Console.Read();
+			if (currentOrder.cost > 0) //check if he gets a ticket
 				return STATES.OUTPUT_TICKET;
 
-			//TODO: this should not happen
+			//this should not happen
 			return 0;
 		}
 
@@ -298,6 +312,7 @@ namespace KonsolenPrototyp
 		{
 			//TODO: check if we have enough tickets
 			//TODO: log the ticket infos
+			//TODO: maybe print a summary?
 			Console.WriteLine("Here is your ticket.");
 			Console.WriteLine("Have a nice day.");
 			Console.Read();
