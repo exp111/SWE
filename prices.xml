@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<prices>
+  <tarif type="A">
+    <kind>1.3</kind>
+    <ermaessigt>1.5</ermaessigt>
+    <standard>2</standard>
+    <senior>1.8</senior>
+  </tarif>
+  <tarif type="B">
+    <kind>1.6</kind>
+    <ermaessigt>1.9</ermaessigt>
+    <standard>2.5</standard>
+    <senior>2.2</senior>
+  </tarif>
+  <tarif type="C">
+    <kind>1.9</kind>
+    <ermaessigt>2.3</ermaessigt>
+    <standard>3</standard>
+    <senior>2.6</senior>
+  </tarif>
+</prices>

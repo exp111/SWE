@@ -39,5 +39,11 @@
     <Compile Include="Application.cs" />
     <Compile Include="Fahrkartenautomat.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="prices.xml" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

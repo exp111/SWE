@@ -2,14 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Remoting.Messaging;
+using System.Xml;
 
 namespace KonsolenPrototyp
 {
 	enum Typen : int
 	{
 		KIND = 0,
-		STUDENT = 1,
-		ERWACHSENER = 2,
+		ERMAESSIGT = 1,
+		STANDARD = 2,
 		SENIOR = 3
 	}
 
@@ -28,14 +29,77 @@ namespace KonsolenPrototyp
 		public double paid = 0;
 	}
 
+	class PriceList
+	{
+		private double[][] prices = new double[Enum.GetNames(typeof(Tarif)).Length][];
+		private string fileName = "prices.xml";
+
+		public PriceList()
+		{
+			int length = Enum.GetNames(typeof(Typen)).Length;
+			for (int i = 0; i < prices.Length; i++)
+			{
+				prices[i] = new double[length];
+			}
+		}
+
+		public void LoadPrices()
+		{
+			XmlReader reader = XmlReader.Create(fileName);
+			int current = -1;
+			while (reader.Read())
+			{
+				if (reader.IsStartElement())
+				{
+					switch (reader.Name.ToLower())
+					{
+						case "tarif":
+						{
+							if (reader.HasAttributes)
+							{
+								Tarif index;
+								Tarif.TryParse(reader.GetAttribute("type"), true, out index);
+								current = (int)index;
+							}
+
+							break;
+						}
+						default:
+						{
+							Typen index;
+							if (Typen.TryParse(reader.Name, true, out index))
+							{
+								if (current != -1)
+									prices[current][(int)index] = reader.ReadElementContentAsDouble();
+							}
+
+							break;
+						}
+					}
+				}
+			}
+
+		}
+
+		public double GetPrice(Tarif tariff, Typen typ)
+		{
+			if ((int)tariff >= prices.Length)
+				return 0;
+			var list = prices[(int)tariff];
+			if ((int)typ >= list.Length)
+				return 0;
+			return list[(int)typ];
+		}
+	}
+
 	// ReSharper disable once IdentifierTypo
 	class Fahrkartenautomat
 	{
 		enum STATES : int
 		{
 			MENU = 0,
-			SELECT_PERSONS = 1,
-			SELECT_TARIF = 2,
+			SELECT_TARIF = 1,
+			SELECT_PERSONS = 2,
 			INPUT_MONEY = 3,
 			OUTPUT_MONEY = 4,
 			OUTPUT_TICKET = 5,
@@ -47,6 +111,12 @@ namespace KonsolenPrototyp
 		private readonly List<double> outputCash = new List<double> { 0.05, 0.1, 0.2, 0.5, 1, 2 };
 		private STATES state = STATES.MENU;
 		private Order currentOrder;
+		private PriceList prices = new PriceList();
+
+		public Fahrkartenautomat()
+		{
+			prices.LoadPrices();
+		}
 
 		public void Run()
 		{
@@ -55,11 +125,11 @@ namespace KonsolenPrototyp
 				case STATES.MENU:
 					state = Menu();
 					break;
-				case STATES.SELECT_PERSONS:
-					state = SelectPersons();
-					break;
 				case STATES.SELECT_TARIF:
 					state = SelectTarif();
+					break;
+				case STATES.SELECT_PERSONS:
+					state = SelectPersons();
 					break;
 				case STATES.INPUT_MONEY:
 					state = InputMoney();
@@ -90,10 +160,8 @@ namespace KonsolenPrototyp
 				case "1":
 					currentOrder = new Order();
 					return STATES.SELECT_PERSONS;
-					break;
 				case "1337":
 					return STATES.ADMIN;
-					break;
 				default:
 					Console.WriteLine("Invalid Input!");
 					Console.Clear();
@@ -161,7 +229,12 @@ namespace KonsolenPrototyp
 
 		private STATES InputMoney()
 		{
-			//TODO: get price
+			//Get price
+			currentOrder.cost = 0;
+			for (int i = 0; i < currentOrder.Typens.Count; i++)
+			{
+				currentOrder.cost += prices.GetPrice(currentOrder.Tarif, currentOrder.Typens[i]);
+			}
 			//TODO: write down info about the ticket (tariff, types & price)
 			currentOrder.paid = 0;
 			while (currentOrder.cost > currentOrder.paid)
