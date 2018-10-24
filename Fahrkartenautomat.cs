@@ -6,7 +6,7 @@ using System.Xml;
 
 namespace KonsolenPrototyp
 {
-	enum Typen : int
+	enum Typ : int
 	{
 		KIND = 0,
 		ERMAESSIGT = 1,
@@ -23,7 +23,7 @@ namespace KonsolenPrototyp
 
 	class Order
 	{
-		public List<Typen> Typens = new List<Typen>();
+		public List<Typ> Typs = new List<Typ>();
 		public Tarif Tarif = (Tarif)(-1);
 		public double cost = 6.5;
 		public double paid = 0;
@@ -36,7 +36,7 @@ namespace KonsolenPrototyp
 
 		public PriceList()
 		{
-			int length = Enum.GetNames(typeof(Typen)).Length;
+			int length = Enum.GetNames(typeof(Typ)).Length;
 			for (int i = 0; i < prices.Length; i++)
 			{
 				prices[i] = new double[length];
@@ -66,8 +66,8 @@ namespace KonsolenPrototyp
 						}
 						default:
 						{
-							Typen index;
-							if (Typen.TryParse(reader.Name, true, out index))
+							Typ index;
+							if (Typ.TryParse(reader.Name, true, out index))
 							{
 								if (current != -1)
 									prices[current][(int)index] = reader.ReadElementContentAsDouble();
@@ -81,7 +81,7 @@ namespace KonsolenPrototyp
 
 		}
 
-		public double GetPrice(Tarif tariff, Typen typ)
+		public double GetPrice(Tarif tariff, Typ typ)
 		{
 			if ((int)tariff >= prices.Length)
 				return 0;
@@ -159,7 +159,7 @@ namespace KonsolenPrototyp
 			{
 				case "1":
 					currentOrder = new Order();
-					return STATES.SELECT_PERSONS;
+					return STATES.MENU + 1;
 				case "1337":
 					return STATES.ADMIN;
 				default:
@@ -172,28 +172,28 @@ namespace KonsolenPrototyp
 
 		private STATES SelectPersons()
 		{
-			if (currentOrder.Typens.Count > 0)
+			if (currentOrder.Typs.Count > 0)
 			{
 				Console.WriteLine("Your current Types:");
-				foreach (var typ in currentOrder.Typens)
+				foreach (var typ in currentOrder.Typs)
 				{
 					Console.WriteLine(typ.ToString());
 				}
 			}
 			Console.WriteLine("Select your Type:");
-			foreach (Typen typ in (Typen[]) Enum.GetValues(typeof(Typen)))
+			foreach (Typ typ in (Typ[]) Enum.GetValues(typeof(Typ)))
 			{
 				//TODO: maybe show prices?
 				Console.WriteLine($"{(int)typ}. {typ.ToString()}");
 			}
 			var input = Console.ReadLine();
-			int intput = -1;
-			//TODO: Check
-			Int32.TryParse(input, out intput);
+			Typ intput;
+			//Check
+			if (!Typ.TryParse(input, out intput) || !Enum.IsDefined(typeof(Typ), intput))
+				return STATES.SELECT_PERSONS;
 
 			//Add to current order
-			currentOrder.Typens.Add((Typen)intput);
-			//
+			currentOrder.Typs.Add(intput);
 			Console.WriteLine("Do you want to add another person? (y/n)");
 			input = Console.ReadLine();
 			if (input == "y")
@@ -216,31 +216,38 @@ namespace KonsolenPrototyp
 				Console.WriteLine($"{(int)tarif}. {tarif.ToString()}");
 			}
 			var input = Console.ReadLine();
-			int intput = -1;
-			//TODO: Check
-			Int32.TryParse(input, out intput);
+			Tarif intput;
+			//Check
+			if (!Tarif.TryParse(input, out intput) || !Enum.IsDefined(typeof(Tarif), intput))
+				return STATES.SELECT_TARIF;
 
 			//Add to current order
-			currentOrder.Tarif = (Tarif) intput;
+			currentOrder.Tarif = intput;
 			return STATES.SELECT_TARIF + 1;
-
-			return 0;
 		}
 
 		private STATES InputMoney()
 		{
 			//Get price
 			currentOrder.cost = 0;
-			for (int i = 0; i < currentOrder.Typens.Count; i++)
+			string info = "";
+			for (int i = 0; i < currentOrder.Typs.Count; i++)
 			{
-				currentOrder.cost += prices.GetPrice(currentOrder.Tarif, currentOrder.Typens[i]);
+				//add single cost of tarif & type to total cost
+				currentOrder.cost += prices.GetPrice(currentOrder.Tarif, currentOrder.Typs[i]);
+				//ticket info string
+				info += currentOrder.Typs[i];
+				info += i < currentOrder.Typs.Count - 1 ? ", " : ""; //check if last one
 			}
-			//TODO: write down info about the ticket (tariff, types & price)
+	
 			currentOrder.paid = 0;
 			while (currentOrder.cost > currentOrder.paid)
 			{
 				Console.Clear();
+				//write down info about the ticket (tariff, types & price)
+				Console.WriteLine($"You want to buy {currentOrder.Typs.Count} Tarif {currentOrder.Tarif} Tickets ({info}).");
 				Console.WriteLine($"Please insert {currentOrder.cost - currentOrder.paid} Euro:");
+
 				string input = Console.ReadLine();
 				double intput = 0;
 				//TODO: check if is correct
