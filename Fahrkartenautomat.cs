@@ -1,95 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using System.Xml;
+using System.IO.Pipes;
 
 namespace KonsolenPrototyp
 {
-	enum Typ : int
-	{
-		KIND = 0,
-		ERMAESSIGT = 1,
-		STANDARD = 2,
-		SENIOR = 3
-	}
-
-	enum Tarif : int
-	{
-		A = 0,
-		B = 1,
-		C = 2
-	}
-
 	class Order
 	{
 		public List<Typ> Typs = new List<Typ>();
 		public Tarif Tarif = (Tarif)(-1);
 		public double cost = 6.5;
 		public double paid = 0;
-	}
-
-	class PriceList
-	{
-		private double[][] prices = new double[Enum.GetNames(typeof(Tarif)).Length][];
-		private string fileName = "prices.xml";
-
-		public PriceList()
-		{
-			int length = Enum.GetNames(typeof(Typ)).Length;
-			for (int i = 0; i < prices.Length; i++)
-			{
-				prices[i] = new double[length];
-			}
-		}
-
-		public void LoadPrices()
-		{
-			XmlReader reader = XmlReader.Create(fileName);
-			int current = -1;
-			while (reader.Read())
-			{
-				if (reader.IsStartElement())
-				{
-					switch (reader.Name.ToLower())
-					{
-						case "tarif":
-						{
-							if (reader.HasAttributes)
-							{
-								Tarif index;
-								if (Tarif.TryParse(reader.GetAttribute("type"), true, out index) && Enum.IsDefined(typeof(Tarif), index));
-									current = (int)index;
-							}
-
-							break;
-						}
-						default:
-						{
-							Typ index;
-							if (Typ.TryParse(reader.Name, true, out index) && Enum.IsDefined(typeof(Typ), index))
-							{
-								if (current != -1)
-									prices[current][(int)index] = reader.ReadElementContentAsDouble();
-							}
-
-							break;
-						}
-					}
-				}
-			}
-
-		}
-
-		public double GetPrice(Tarif tariff, Typ typ)
-		{
-			if ((int)tariff >= prices.Length)
-				return 0;
-			var list = prices[(int)tariff];
-			if ((int)typ >= list.Length)
-				return 0;
-			return list[(int)typ];
-		}
 	}
 
 	// ReSharper disable once IdentifierTypo
@@ -104,6 +24,7 @@ namespace KonsolenPrototyp
 			OUTPUT_MONEY = 4,
 			OUTPUT_TICKET = 5,
 
+			ASK_ADMIN_PW,
 			ADMIN
 		}
 
@@ -112,6 +33,7 @@ namespace KonsolenPrototyp
 		private STATES state = STATES.MENU;
 		private Order currentOrder;
 		private PriceList prices = new PriceList();
+		private String adminPW = "no u"; //it's safe writing this in the code /s
 
 		public Fahrkartenautomat()
 		{
@@ -140,6 +62,9 @@ namespace KonsolenPrototyp
 				case STATES.OUTPUT_TICKET:
 					state = OutputTicket();
 					break;
+				case STATES.ASK_ADMIN_PW:
+					state = AskAdminPW();
+					break;
 				case STATES.ADMIN:
 					state = Admin();
 					break;
@@ -154,14 +79,15 @@ namespace KonsolenPrototyp
 			Console.Clear();
 			Console.WriteLine("What do you want to do:");
 			Console.WriteLine("1. Buy a ticket");
+			Console.WriteLine("2. Admin Menu");
 			var input = Console.ReadLine();
 			switch (input)
 			{
 				case "1":
 					currentOrder = new Order();
 					return STATES.MENU + 1;
-				case "1337":
-					return STATES.ADMIN;
+				case "2":
+					return STATES.ASK_ADMIN_PW;
 				default:
 					Console.WriteLine("Invalid Input!");
 					Console.Clear();
@@ -189,6 +115,8 @@ namespace KonsolenPrototyp
 			var input = Console.ReadLine();
 			Typ intput;
 			//Check
+			if (input == "c")
+				return STATES.MENU;
 			if (!Typ.TryParse(input, out intput) || !Enum.IsDefined(typeof(Typ), intput))
 				return STATES.SELECT_PERSONS;
 
@@ -196,15 +124,16 @@ namespace KonsolenPrototyp
 			currentOrder.Typs.Add(intput);
 			Console.WriteLine("Do you want to add another person? (y/n)");
 			input = Console.ReadLine();
-			if (input == "y")
+			switch (input)
 			{
-				return STATES.SELECT_PERSONS;
+				case "y":
+					return STATES.SELECT_PERSONS;
+				case "c":
+					return STATES.MENU;
+				default:
+				case "n":
+					return STATES.SELECT_PERSONS + 1;
 			}
-			else
-			{
-				return STATES.SELECT_PERSONS + 1;
-			}
-			return 0;
 		}
 
 		private STATES SelectTarif()
@@ -218,6 +147,8 @@ namespace KonsolenPrototyp
 			var input = Console.ReadLine();
 			Tarif intput;
 			//Check
+			if (input == "c")
+				return STATES.MENU;
 			if (!Tarif.TryParse(input, out intput) || !Enum.IsDefined(typeof(Tarif), intput))
 				return STATES.SELECT_TARIF;
 
@@ -316,6 +247,40 @@ namespace KonsolenPrototyp
 			Console.WriteLine("Here is your ticket.");
 			Console.WriteLine("Have a nice day.");
 			Console.Read();
+			return STATES.MENU;
+		}
+
+		private STATES AskAdminPW()
+		{
+			Console.WriteLine("Please enter the Admin Password: ");
+			string password = "";
+			do
+			{
+				ConsoleKeyInfo key = Console.ReadKey(true);
+				// Backspace Should Not Work
+				if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+				{
+					password += key.KeyChar;
+					Console.Write("*");
+				}
+				else
+				{
+					if (key.Key == ConsoleKey.Backspace && password.Length > 0)
+					{
+						password = password.Substring(0, (password.Length - 1));
+						Console.Write("\b \b");
+					}
+					else if (key.Key == ConsoleKey.Enter)
+					{
+						break;
+					}
+				}
+			} while (true);
+			Console.WriteLine();
+
+			if (adminPW == password)
+				return STATES.ADMIN;
+
 			return STATES.MENU;
 		}
 

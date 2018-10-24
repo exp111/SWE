@@ -37,7 +37,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Application.cs" />
+    <Compile Include="Enums.cs" />
     <Compile Include="Fahrkartenautomat.cs" />
+    <Compile Include="PriceList.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Xml" />
